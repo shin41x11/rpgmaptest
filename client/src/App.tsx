@@ -44,22 +44,29 @@ const App: React.FC = () => {
             Navigate through different terrains and discover hidden treasures!
           </p>
           
-          {/* Simple button with inline style and onClick handler */}
-          <div 
+          {/* Start button with clearer styling */}
+          <button
             style={{
               display: 'inline-block',
-              backgroundColor: 'blue',
+              backgroundColor: '#2ecc71',
               color: 'white',
-              padding: '12px 24px',
-              borderRadius: '4px',
+              padding: '16px 32px',
+              border: 'none',
+              borderRadius: '8px',
               cursor: 'pointer',
-              fontSize: '18px',
-              fontWeight: 'bold'
+              fontSize: '22px',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              transition: 'transform 0.2s, background-color 0.2s'
             }}
             onClick={startGame}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#27ae60'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2ecc71'}
+            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
-            Start Adventure
-          </div>
+            ► Start Adventure ◄
+          </button>
         </div>
       </div>
     </QueryClientProvider>

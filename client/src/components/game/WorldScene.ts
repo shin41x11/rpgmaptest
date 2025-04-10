@@ -116,27 +116,10 @@ export class WorldScene extends Phaser.Scene {
 
   private setupSounds(): void {
     try {
-      // Setup background music
-      this.backgroundMusic = this.sound.add('background', { 
-        loop: true, 
-        volume: 0.5 
-      });
-      
-      // Setup sound effects
-      this.hitSound = this.sound.add('hit', { volume: 0.3 });
-      this.successSound = this.sound.add('success', { volume: 0.5 });
-      
-      // Play background music
-      this.backgroundMusic.play();
-      
-      // Sync with useAudio store
-      const audioEl = this.backgroundMusic as unknown as HTMLAudioElement;
-      const hitEl = this.hitSound as unknown as HTMLAudioElement;
-      const successEl = this.successSound as unknown as HTMLAudioElement;
-      
-      useAudio.getState().setBackgroundMusic(audioEl);
-      useAudio.getState().setHitSound(hitEl);
-      useAudio.getState().setSuccessSound(successEl);
+      // Get the sounds created in PreloadScene
+      this.backgroundMusic = this.sound.get('background');
+      this.hitSound = this.sound.get('hit');
+      this.successSound = this.sound.get('success');
       
       // Update the game state
       useGameState.getState().setHealth(100);
