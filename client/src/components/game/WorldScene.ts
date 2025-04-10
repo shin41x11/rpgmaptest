@@ -50,23 +50,38 @@ export class WorldScene extends Phaser.Scene {
     try {
       if (!this.player || !this.cursors) return;
       
-      // Store initial position for debugging
-      const startX = this.player.x;
-      const startY = this.player.y;
+      // 現在位置をログ
+      const currentX = this.player.x;
+      const currentY = this.player.y;
       
-      // Apply direct movement (position changes) based on input
+      // プレーヤーの移動処理
       this.handlePlayerMovement();
       
-      // Check if player position changed
-      const hasMoved = (startX !== this.player.x || startY !== this.player.y);
-      
-      // Always log movement on each frame for better debugging
-      if (hasMoved) {
-        console.log('Player moved:', 
-          'from:', startX.toFixed(0), startY.toFixed(0),
-          'to:', this.player.x.toFixed(0), this.player.y.toFixed(0),
-          'delta:', (this.player.x - startX).toFixed(0), (this.player.y - startY).toFixed(0)
-        );
+      // 次のフレームで移動の結果をチェックするための遅延ログ
+      // (少し遅らせて実際の移動結果を確認する)
+      this.time.delayedCall(50, () => {
+        const newX = this.player.x;
+        const newY = this.player.y;
+        const hasMoved = (currentX !== newX || currentY !== newY);
+        
+        if (hasMoved) {
+          // 実際に移動した場合のみ詳細なログ
+          console.log('Player moved:', 
+            'from:', currentX.toFixed(0), currentY.toFixed(0),
+            'to:', newX.toFixed(0), newY.toFixed(0),
+            'delta:', (newX - currentX).toFixed(0), (newY - currentY).toFixed(0)
+          );
+        }
+      });
+
+      // 物理デバッグのために情報表示
+      if (this.time.now % 500 === 0) { // 約500ミリ秒ごとに情報を表示
+        if (this.player.body && this.player.body.velocity) {
+          console.log('Debug info - Player at:',
+            this.player.x.toFixed(0), this.player.y.toFixed(0),
+            'velocity:', this.player.body.velocity.x.toFixed(0), this.player.body.velocity.y.toFixed(0)
+          );
+        }
       }
     } catch (error) {
       console.error('Error in update:', error);
@@ -75,44 +90,35 @@ export class WorldScene extends Phaser.Scene {
 
   private createPlayer(): void {
     try {
-      // 画面中央に配置
-      const x = 640; // 画面の中央X座標（1280の半分）
-      const y = 360; // 画面の中央Y座標（720の半分）
+      // 画面の中央に配置
+      const centerX = this.cameras.main.width / 2;
+      const centerY = this.cameras.main.height / 2;
       
-      console.log('Creating player at position:', x, y);
+      console.log('Creating player at position:', centerX, centerY);
       
-      // より明確にするために単純な四角形で表示
-      const graphics = this.add.graphics();
-      graphics.fillStyle(0xFF0000, 1); // 赤色で塗りつぶし
-      graphics.fillRect(-20, -20, 40, 40); // 40x40の四角形
+      // ダミーオブジェクトを作成して赤い四角を表示
+      // 直接グラフィックを作成すると動かない可能性があるので、
+      // スプライトを使用して単純な表示にします
+      this.player = this.physics.add.sprite(centerX, centerY, 'hero');
       
-      // Create the player with physics and the rectangle as texture
-      this.player = this.physics.add.sprite(x, y, 'hero');
+      // プレイヤーのサイズを大きくして明確に見える
+      this.player.setScale(3.0);
       
-      if (this.player) {
-        // 大きめに設定
-        this.player.setScale(2.0);
-        
-        // 衝突判定は手動で行う
-        this.player.setCollideWorldBounds(false);
-        
-        // 目立つ色に設定
-        this.player.setTint(0xFF0000);
-        
-        // 長方形の図形をプレイヤーの代わりに表示
-        this.player.setVisible(false); // 元のスプライトは非表示
-        
-        // 長方形をプレイヤーに追従させる
-        this.events.on('update', () => {
-          if (this.player) {
-            graphics.x = this.player.x;
-            graphics.y = this.player.y;
-          }
-        });
-      }
+      // 物理演算を簡素化
+      this.player.setCollideWorldBounds(true); // 世界の端で止まる
+      this.player.setBounce(0); // 反発しない
+      this.player.setImmovable(false); // 動かせる状態
       
-      // Log success
-      console.log('Player created successfully');
+      // 目立つように赤色に
+      this.player.setTint(0xFF0000);
+      
+      // 判定枠の大きさを確認するため（デバッグ用）
+      this.player.setDebug(true, true, 0xFF00FF);
+      
+      // 確認用ログ
+      console.log('Player created with dimensions:', 
+        this.player.width, 'x', this.player.height,
+        'at position', this.player.x, this.player.y);
     } catch (error) {
       console.error('Error creating player:', error);
     }
@@ -218,7 +224,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    const moveStep = 30; // さらに移動量を大幅に増やす
+    const moveStep = 50; // 移動量を一気に大きくして明確に
     let isMoving = false;
     
     // Get keyboard state for WASD keys
@@ -233,34 +239,32 @@ export class WorldScene extends Phaser.Scene {
     const upPressed = this.cursors.up?.isDown || wKey?.isDown;
     const downPressed = this.cursors.down?.isDown || sKey?.isDown;
     
-    // Store current position
-    let x = this.player.x;
-    let y = this.player.y;
+    // 通常の速度ベクトルではなく直接速度値を設定
+    let velocityX = 0;
+    let velocityY = 0;
     
-    // Move using direct position changes instead of velocity
+    // キー入力による速度設定
     if (leftPressed) {
-      x -= moveStep;
-      this.player.flipX = true;
+      velocityX = -moveStep;
       this.playerState.direction = Direction.LEFT;
       isMoving = true;
       console.log('Moving left');
     } else if (rightPressed) {
-      x += moveStep;
-      this.player.flipX = false;
+      velocityX = moveStep;
       this.playerState.direction = Direction.RIGHT;
       isMoving = true;
       console.log('Moving right');
     }
     
     if (upPressed) {
-      y -= moveStep;
+      velocityY = -moveStep;
       if (!isMoving) {
         this.playerState.direction = Direction.UP;
       }
       isMoving = true;
       console.log('Moving up');
     } else if (downPressed) {
-      y += moveStep;
+      velocityY = moveStep;
       if (!isMoving) {
         this.playerState.direction = Direction.DOWN;
       }
@@ -268,28 +272,21 @@ export class WorldScene extends Phaser.Scene {
       console.log('Moving down');
     }
     
-    // Always apply the position changes directly
-    // Set the new position
-    this.player.setPosition(x, y);
+    // Phaserの物理エンジンを使って速度設定（CollideWorldBoundsと共に動作）
+    this.player.setVelocity(velocityX, velocityY);
     
-    // Ensure player stays within the world boundaries
-    const worldWidth = 1280;
-    const worldHeight = 720;
-    const playerWidth = this.player.width * this.player.scaleX / 2;
-    const playerHeight = this.player.height * this.player.scaleY / 2;
+    // 移動をログ
+    if (isMoving) {
+      console.log('Player now at:', this.player.x, this.player.y, 
+        'with velocity:', this.player.body.velocity.x, this.player.body.velocity.y);
+    }
     
-    // Keep player within bounds manually
-    if (this.player.x < playerWidth) this.player.x = playerWidth;
-    if (this.player.x > worldWidth - playerWidth) this.player.x = worldWidth - playerWidth;
-    if (this.player.y < playerHeight) this.player.y = playerHeight;
-    if (this.player.y > worldHeight - playerHeight) this.player.y = worldHeight - playerHeight;
+    // 更新時にプレイヤーの色とサイズを維持（物理更新で上書きされることを防止）
+    this.player.setTint(0xFF0000);       // 明るい赤色
+    this.player.setScale(3.0);           // 大きく表示
+    this.player.setAlpha(1);             // 完全に不透明
     
-    // Ensure player is visible and has the correct size - red tint to see it clearly
-    this.player.setAlpha(1);
-    this.player.setScale(1.0);
-    this.player.setTint(0xFF0000); // Keep it bright red
-    
-    // Update player state
+    // プレイヤーの状態を更新
     this.playerState.isMoving = isMoving;
   }
 }
