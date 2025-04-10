@@ -54,48 +54,87 @@ export class WorldScene extends Phaser.Scene {
     // Create the tilemap from the JSON data
     this.map = this.make.tilemap({ key: 'world' });
     
-    // Add tilesets using the available textures
-    const grassTileset = this.map.addTilesetImage('grass', 'grass');
-    const sandTileset = this.map.addTilesetImage('sand', 'sand');
-    const waterTileset = this.map.addTilesetImage('water', 'wood');
-    const obstacleTileset = this.map.addTilesetImage('obstacle', 'asphalt');
-    
-    // Create the terrain layer
-    this.terrainLayer = this.map.createLayer('Terrain', [grassTileset, sandTileset, waterTileset], 0, 0);
-    
-    // Create the obstacles layer
-    this.obstaclesLayer = this.map.createLayer('Obstacles', [obstacleTileset], 0, 0);
-    
-    // Set collisions for the obstacles layer
-    if (this.obstaclesLayer) {
-      this.obstaclesLayer.setCollisionByProperty({ collides: true });
-    }
-    
-    // Set world bounds based on the map dimensions
-    if (this.terrainLayer) {
-      this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+    try {
+      // Add tilesets using the available textures
+      const grassTileset = this.map.addTilesetImage('grass', 'grass') || undefined;
+      const sandTileset = this.map.addTilesetImage('sand', 'sand') || undefined;
+      const waterTileset = this.map.addTilesetImage('water', 'wood') || undefined;
+      const obstacleTileset = this.map.addTilesetImage('obstacle', 'asphalt') || undefined;
+      
+      // Create the terrain layer if all required tilesets are available
+      if (grassTileset && sandTileset && waterTileset) {
+        // Use non-null assertion operator since we already checked for null values
+        const tilesets = [grassTileset, sandTileset, waterTileset].filter(Boolean) as Phaser.Tilemaps.Tileset[];
+        const terrainLayer = this.map.createLayer('Terrain', tilesets, 0, 0);
+        if (terrainLayer) this.terrainLayer = terrainLayer;
+      }
+      
+      // Create the obstacles layer if the tileset is available
+      if (obstacleTileset) {
+        const obstaclesLayer = this.map.createLayer('Obstacles', [obstacleTileset], 0, 0);
+        if (obstaclesLayer) this.obstaclesLayer = obstaclesLayer;
+      }
+      
+      // Set collisions for the obstacles layer
+      if (this.obstaclesLayer) {
+        this.obstaclesLayer.setCollisionByProperty({ collides: true });
+      }
+      
+      // Set world bounds based on the map dimensions
+      if (this.terrainLayer) {
+        this.physics.world.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+      }
+    } catch (error) {
+      console.error('Error creating map layers:', error);
+      
+      // Create a simple fallback map with a green background if tilemap fails to load
+      const worldWidth = 1280;
+      const worldHeight = 1280;
+      
+      // Set a background color instead of using the tilemap
+      this.cameras.main.setBackgroundColor(0x4CAF50);
+      
+      // Set world bounds
+      this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
     }
   }
 
   private createPlayer(): void {
-    // Get the spawn point from the map
-    const spawnPoint = this.map?.findObject('Objects', obj => obj.name === 'SpawnPoint');
-    
-    // Default position if spawn point is not found in the map
-    const x = spawnPoint ? spawnPoint.x : 400;
-    const y = spawnPoint ? spawnPoint.y : 300;
-    
-    // Create the player sprite at the spawn location
-    this.player = this.physics.add.sprite(x, y, 'hero');
-    this.player.setScale(0.5);
-    this.player.setCollideWorldBounds(true);
-    
-    // Create simple player animations for SVG sprite
-    this.createPlayerAnimations();
-    
-    // Add collision between player and obstacles
-    if (this.obstaclesLayer) {
-      this.physics.add.collider(this.player, this.obstaclesLayer, this.handleCollision, undefined, this);
+    try {
+      // Default position in the center of the screen
+      const centerX = this.cameras.main.width / 2;
+      const centerY = this.cameras.main.height / 2;
+      
+      // Try to get the spawn point from the map if it exists
+      let x = centerX;
+      let y = centerY;
+      
+      if (this.map) {
+        try {
+          const spawnPoint = this.map.findObject('Objects', obj => obj.name === 'SpawnPoint');
+          if (spawnPoint && spawnPoint.x !== undefined && spawnPoint.y !== undefined) {
+            x = spawnPoint.x;
+            y = spawnPoint.y;
+          }
+        } catch (error) {
+          console.error('Error finding spawn point:', error);
+        }
+      }
+      
+      // Create the player sprite at the spawn location
+      this.player = this.physics.add.sprite(x, y, 'hero');
+      this.player.setScale(0.5);
+      this.player.setCollideWorldBounds(true);
+      
+      // Create simple player animations for SVG sprite
+      this.createPlayerAnimations();
+      
+      // Add collision between player and obstacles if they exist
+      if (this.obstaclesLayer) {
+        this.physics.add.collider(this.player, this.obstaclesLayer, this.handleCollision, undefined, this);
+      }
+    } catch (error) {
+      console.error('Error creating player:', error);
     }
   }
 
