@@ -263,8 +263,8 @@ export class WorldScene extends Phaser.Scene {
       // 新しいヒーロースプライトを作成
       this.player = this.physics.add.sprite(centerX, centerY, 'hero');
       
-      // より適切なサイズに調整
-      this.player.setScale(1.0);
+      // キャラクターを小さめのサイズに調整
+      this.player.setScale(0.5);
       
       // 物理設定
       this.player.setCollideWorldBounds(true);
@@ -464,7 +464,7 @@ export class WorldScene extends Phaser.Scene {
     
     // 更新時にプレイヤーの色とサイズを維持（物理更新で上書きされることを防止）
     this.player.setTint(0xFF0000);       // 明るい赤色
-    this.player.setScale(3.0);           // 大きく表示
+    this.player.setScale(0.5);           // 小さめのサイズに調整
     this.player.setAlpha(1);             // 完全に不透明
     
     // プレイヤーの状態を更新
