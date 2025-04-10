@@ -51,8 +51,17 @@ export class WorldScene extends Phaser.Scene {
     try {
       if (!this.player || !this.cursors) return;
 
-      // Reset player velocity
-      this.player.setVelocity(0);
+      // Reset player velocity at the start of each update
+      this.player.setVelocity(0, 0);
+      
+      // Log player position for debugging
+      if (this.time.now % 60 === 0) { // Log every second approximately
+        console.log('Player position:', 
+          'x:', this.player.x,
+          'y:', this.player.y,
+          'velocity:', this.player.body?.velocity.x, this.player.body?.velocity.y
+        );
+      }
 
       // Handle player movement
       this.handlePlayerMovement();
@@ -97,6 +106,27 @@ export class WorldScene extends Phaser.Scene {
       // Create cursor keys for input
       this.cursors = this.input.keyboard?.createCursorKeys();
       
+      // Set up direct event listeners for arrow keys as backup
+      const leftKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+      const rightKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+      const upKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.UP);
+      const downKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+      
+      // Alternative WASD keys
+      const wKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.W);
+      const aKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+      const sKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+      const dKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+      
+      // Log that we've added these explicit key handlers
+      console.log('Alternative key controls added', 
+        'LEFT:', !!leftKey,
+        'RIGHT:', !!rightKey,
+        'UP:', !!upKey,
+        'DOWN:', !!downKey,
+        'WASD:', !!wKey && !!aKey && !!sKey && !!dKey
+      );
+      
       // Add key listener for zooming
       this.input.keyboard?.on('keydown-Z', () => {
         this.cameras.main.zoom += 0.25;
@@ -108,7 +138,12 @@ export class WorldScene extends Phaser.Scene {
         console.log('Zoomed out, current zoom:', this.cameras.main.zoom);
       });
       
-      console.log('Input setup complete');
+      // Add specific debug key press logging
+      this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
+        console.log('Key pressed:', event.key, event.keyCode);
+      });
+      
+      console.log('Input setup complete with enhanced controls');
     } catch (error) {
       console.error('Error setting up input:', error);
     }
@@ -132,39 +167,80 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private handlePlayerMovement(): void {
-    if (!this.player || !this.cursors) return;
+    if (!this.player || !this.cursors) {
+      console.log('Player or cursors not initialized');
+      return;
+    }
 
-    const speed = 160;
+    const speed = 200; // Increased speed for better responsiveness
     let isMoving = false;
     
-    // Check for movement input
-    if (this.cursors.left?.isDown) {
-      this.player.setVelocityX(-speed);
-      this.player.flipX = true; // Flip sprite to face left
-      this.playerState.direction = Direction.LEFT;
-      isMoving = true;
-    } else if (this.cursors.right?.isDown) {
-      this.player.setVelocityX(speed);
-      this.player.flipX = false; // Reset flip
-      this.playerState.direction = Direction.RIGHT;
-      isMoving = true;
+    // Get keyboard state for WASD keys
+    const wKey = this.input.keyboard?.addKey('W');
+    const aKey = this.input.keyboard?.addKey('A');
+    const sKey = this.input.keyboard?.addKey('S');
+    const dKey = this.input.keyboard?.addKey('D');
+    
+    // Explicitly log key states for debugging
+    if (this.time.now % 120 === 0) {
+      console.log('Key states:', 
+        'left:', this.cursors.left?.isDown, 'A:', aKey?.isDown,
+        'right:', this.cursors.right?.isDown, 'D:', dKey?.isDown,
+        'up:', this.cursors.up?.isDown, 'W:', wKey?.isDown,
+        'down:', this.cursors.down?.isDown, 'S:', sKey?.isDown
+      );
     }
     
-    if (this.cursors.up?.isDown) {
+    // Handle horizontal movement with arrow keys or WASD
+    const leftPressed = this.cursors.left?.isDown || aKey?.isDown;
+    const rightPressed = this.cursors.right?.isDown || dKey?.isDown;
+    const upPressed = this.cursors.up?.isDown || wKey?.isDown;
+    const downPressed = this.cursors.down?.isDown || sKey?.isDown;
+    
+    // Handle horizontal movement
+    if (leftPressed) {
+      this.player.setVelocityX(-speed);
+      this.player.flipX = true;
+      this.playerState.direction = Direction.LEFT;
+      isMoving = true;
+      console.log('Moving left, velocity set to', -speed);
+    } else if (rightPressed) {
+      this.player.setVelocityX(speed);
+      this.player.flipX = false;
+      this.playerState.direction = Direction.RIGHT;
+      isMoving = true;
+      console.log('Moving right, velocity set to', speed);
+    } else {
+      // Stop horizontal movement if neither left nor right is pressed
+      this.player.setVelocityX(0);
+    }
+    
+    // Handle vertical movement
+    if (upPressed) {
       this.player.setVelocityY(-speed);
       if (!isMoving) {
         this.playerState.direction = Direction.UP;
       }
       isMoving = true;
-    } else if (this.cursors.down?.isDown) {
+      console.log('Moving up, velocity set to', -speed);
+    } else if (downPressed) {
       this.player.setVelocityY(speed);
       if (!isMoving) {
         this.playerState.direction = Direction.DOWN;
       }
       isMoving = true;
+      console.log('Moving down, velocity set to', speed);
+    } else {
+      // Stop vertical movement if neither up nor down is pressed
+      this.player.setVelocityY(0);
     }
     
-    // Update player state
+    // Update player state and player visibility if it's moved
     this.playerState.isMoving = isMoving;
+    if (isMoving) {
+      // Ensure player is visible and has the correct size
+      this.player.setAlpha(1);
+      this.player.setScale(0.5);
+    }
   }
 }
