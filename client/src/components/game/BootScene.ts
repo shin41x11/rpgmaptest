@@ -6,8 +6,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    // Load minimal assets needed for the loading screen
-    this.load.svg('loading-spinner', '/assets/ui/controls.svg');
+    // Skip loading any assets in boot scene to avoid errors
+    console.log('Boot scene preload completed');
   }
 
   create(): void {
