@@ -53,31 +53,144 @@ export class WorldScene extends Phaser.Scene {
   
   private createTilemap(): void {
     try {
-      // キャッシュからタイルマップを作成
-      const map = this.make.tilemap({ key: 'world' });
-      
-      // 各タイルセットを追加
-      const grassTiles = map.addTilesetImage('grass', 'grass');
-      const sandTiles = map.addTilesetImage('sand', 'sand');
-      const waterTiles = map.addTilesetImage('water', 'water');
-      const wallTiles = map.addTilesetImage('wall', 'wall');
-      
-      // 利用可能なタイルセット配列
-      const tiles = [grassTiles, sandTiles, waterTiles, wallTiles];
-      
-      // レイヤーを作成
-      const groundLayer = map.createLayer('ground', tiles);
-      const obstaclesLayer = map.createLayer('obstacles', tiles);
-      
-      // 障害物に衝突判定を追加（壁の場合）
-      if (obstaclesLayer) {
-        obstaclesLayer.setCollisionByExclusion([-1, 0]);
-      }
-      
+      // タイルマップではなく手動で地形を作成
+      this.createTerrainManually();
       console.log('Tilemap created successfully');
     } catch (error) {
       console.error('Error creating tilemap:', error);
     }
+  }
+  
+  private createTerrainManually(): void {
+    // 世界サイズ
+    const worldWidth = 640;
+    const worldHeight = 640;
+    const tileSize = 32;
+    
+    // 描画用グラフィックス
+    const terrain = this.add.graphics();
+    
+    // 草地の背景（全体）
+    terrain.fillStyle(0x8BC34A, 1);
+    terrain.fillRect(0, 0, worldWidth, worldHeight);
+    
+    // 砂地のパターン
+    terrain.fillStyle(0xE3A412, 1);
+    
+    // 砂の道を引く
+    terrain.fillRect(worldWidth/2 - 50, 0, 100, worldHeight);
+    terrain.fillRect(0, worldHeight/2 - 50, worldWidth, 100);
+    
+    // 水のパターン
+    terrain.fillStyle(0x42A5F5, 1);
+    
+    // 角に水場を追加
+    const radius = 100;
+    terrain.fillCircle(50, 50, radius);
+    terrain.fillCircle(worldWidth - 50, 50, radius);
+    terrain.fillCircle(50, worldHeight - 50, radius);
+    terrain.fillCircle(worldWidth - 50, worldHeight - 50, radius);
+    
+    // 装飾的な草を追加
+    terrain.fillStyle(0x558B2F, 1);
+    for (let i = 0; i < 50; i++) {
+      const x = Math.random() * worldWidth;
+      const y = Math.random() * worldHeight;
+      const size = 2 + Math.random() * 5;
+      terrain.fillCircle(x, y, size);
+    }
+    
+    // 壁の配置
+    this.createWalls();
+    
+    // 装飾的なオブジェクト
+    this.createDecorativeObjects();
+  }
+  
+  private createWalls(): void {
+    // 壁配置パターン - 数字は位置を表す
+    const wallPattern = [
+      { x: 100, y: 100, width: 50, height: 150 },
+      { x: 500, y: 100, width: 50, height: 150 },
+      { x: 100, y: 400, width: 50, height: 150 },
+      { x: 500, y: 400, width: 50, height: 150 },
+      { x: 250, y: 200, width: 150, height: 50 },
+      { x: 250, y: 350, width: 150, height: 50 }
+    ];
+    
+    // 壁グループの作成
+    const walls = this.physics.add.staticGroup();
+    
+    // 壁用のキーを作成
+    const wallKey = 'wall_rect';
+    
+    // 壁用の共通テクスチャを一度だけ生成
+    // 汎用的な壁テクスチャ（一度だけ生成）
+    if (!this.textures.exists(wallKey)) {
+      const size = 32; // 基本サイズ
+      const graphics = this.add.graphics();
+      // 茶色の壁
+      graphics.fillStyle(0x795548, 1);
+      graphics.fillRect(0, 0, size, size);
+      // 枠線
+      graphics.lineStyle(2, 0x5D4037, 1);
+      graphics.strokeRect(0, 0, size, size);
+      
+      // テクスチャ生成
+      graphics.generateTexture(wallKey, size, size);
+      graphics.destroy();
+    }
+    
+    // 壁の追加
+    wallPattern.forEach(wall => {
+      // スケーリングで壁のサイズを調整
+      const scaleX = wall.width / 32;
+      const scaleY = wall.height / 32;
+      
+      // スプライトを生成して配置
+      const wallSprite = walls.create(
+        wall.x + wall.width / 2, 
+        wall.y + wall.height / 2,
+        wallKey
+      );
+      
+      // サイズ調整
+      wallSprite.setScale(scaleX, scaleY);
+      
+      // 当たり判定のサイズをグラフィックに合わせる
+      wallSprite.setSize(wall.width / scaleX, wall.height / scaleY);
+      
+      // 茶色のティント
+      wallSprite.setTint(0x795548);
+    });
+    
+    // プレイヤーと壁の衝突判定
+    if (this.player) {
+      this.physics.add.collider(this.player, walls);
+    }
+  }
+  
+  private createDecorativeObjects(): void {
+    // 装飾オブジェクトの位置
+    const decorations = [
+      { x: 100, y: 50, radius: 15, color: 0xCDDC39 },  // 黄緑の丸
+      { x: 540, y: 50, radius: 15, color: 0xCDDC39 },  // 黄緑の丸
+      { x: 100, y: 590, radius: 15, color: 0xCDDC39 }, // 黄緑の丸
+      { x: 540, y: 590, radius: 15, color: 0xCDDC39 }, // 黄緑の丸
+      { x: 320, y: 320, radius: 25, color: 0xFF9800 }  // オレンジの丸（中央）
+    ];
+    
+    // 装飾を描画
+    decorations.forEach(dec => {
+      const graphics = this.add.graphics();
+      graphics.fillStyle(dec.color, 1);
+      graphics.fillCircle(dec.x, dec.y, dec.radius);
+      
+      // 発光エフェクト
+      const glow = this.add.graphics();
+      glow.fillStyle(dec.color, 0.3);
+      glow.fillCircle(dec.x, dec.y, dec.radius * 1.5);
+    });
   }
   
   private setupCollisions(): void {
@@ -159,10 +272,10 @@ export class WorldScene extends Phaser.Scene {
       this.player.setFriction(0);
       this.player.setDepth(10); // 他のオブジェクトより上に表示
 
-      // 素早く止まるようにするためのドラッグ設定
+      // 動きをスムーズにするための設定
       if (this.player.body) {
-        this.player.body.setDamping(true);
-        this.player.body.setDrag(0.95, 0.95);
+        // ドラッグを直接設定
+        this.player.setDrag(0.95, 0.95);
       }
       
       // キャラの周りに装飾的な光エフェクトを追加
