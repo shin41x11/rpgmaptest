@@ -53,19 +53,62 @@ export class WorldScene extends Phaser.Scene {
   
   private createTilemap(): void {
     try {
-      // タイルマップではなく手動で地形を作成
-      this.createTerrainManually();
-      console.log('Tilemap created successfully');
+      console.log('タイルマップを作成します');
+      
+      // タイルマップを作成
+      const map = this.make.tilemap({ key: 'world-map' });
+      
+      // 各タイル画像にマップ設定を適用
+      const grassTile = map.addTilesetImage('grass', 'grass');
+      const sandTile = map.addTilesetImage('sand', 'sand');
+      const waterTile = map.addTilesetImage('water', 'water');
+      const wallTile = map.addTilesetImage('wall', 'wall');
+      
+      // すべてのタイルセットを有効なタイルとして配列に
+      const tiles = [grassTile, sandTile, waterTile, wallTile].filter(tile => tile !== null) as Phaser.Tilemaps.Tileset[];
+      
+      // レイヤーを作成
+      const groundLayer = map.createLayer('ground', tiles);
+      const obstaclesLayer = map.createLayer('obstacles', tiles);
+      
+      if (obstaclesLayer) {
+        // 障害物レイヤーに衝突判定を設定（4はwallタイルのID）
+        obstaclesLayer.setCollisionByProperty({ collides: true });
+        // デバッグモードで衝突タイルを視覚化（開発中に便利）
+        // obstaclesLayer.renderDebug(this.add.graphics(), {
+        //   tileColor: null,
+        //   collidingTileColor: new Phaser.Display.Color(243, 134, 48, 128)
+        // });
+      }
+      
+      // ワールドの境界を設定（タイルマップのサイズに基づく）
+      const worldWidth = map.widthInPixels;
+      const worldHeight = map.heightInPixels;
+      this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+      
+      // マップとレイヤーを保存（他のメソッドでアクセスできるように）
+      this.map = map;
+      this.groundLayer = groundLayer;
+      this.obstaclesLayer = obstaclesLayer;
+      
+      // 装飾的なオブジェクトを追加
+      this.createDecorativeObjects();
+      
+      console.log('タイルマップが正常に作成されました');
     } catch (error) {
-      console.error('Error creating tilemap:', error);
+      console.error('タイルマップの作成中にエラーが発生しました:', error);
+      
+      // タイルマップに問題がある場合は、フォールバックで単純な地形を作成
+      this.createTerrainFallback();
     }
   }
   
-  private createTerrainManually(): void {
+  private createTerrainFallback(): void {
+    console.log('フォールバック地形を作成します');
+    
     // 世界サイズ
     const worldWidth = 640;
     const worldHeight = 640;
-    const tileSize = 32;
     
     // 描画用グラフィックス
     const terrain = this.add.graphics();
@@ -74,37 +117,40 @@ export class WorldScene extends Phaser.Scene {
     terrain.fillStyle(0x8BC34A, 1);
     terrain.fillRect(0, 0, worldWidth, worldHeight);
     
-    // 砂地のパターン
+    // 砂地の道路
     terrain.fillStyle(0xE3A412, 1);
-    
-    // 砂の道を引く
     terrain.fillRect(worldWidth/2 - 50, 0, 100, worldHeight);
     terrain.fillRect(0, worldHeight/2 - 50, worldWidth, 100);
     
-    // 水のパターン
+    // 水のある領域
     terrain.fillStyle(0x42A5F5, 1);
-    
-    // 角に水場を追加
     const radius = 100;
     terrain.fillCircle(50, 50, radius);
     terrain.fillCircle(worldWidth - 50, 50, radius);
     terrain.fillCircle(50, worldHeight - 50, radius);
     terrain.fillCircle(worldWidth - 50, worldHeight - 50, radius);
     
-    // 装飾的な草を追加
+    // 小さな装飾的植物
     terrain.fillStyle(0x558B2F, 1);
+    // 乱数シードを固定して常に同じパターンを生成
+    const seed = 12345;
+    let rng = seed;
+    
+    // 疑似乱数生成関数
+    const pseudoRandom = () => {
+      rng = (rng * 9301 + 49297) % 233280;
+      return rng / 233280;
+    };
+    
     for (let i = 0; i < 50; i++) {
-      const x = Math.random() * worldWidth;
-      const y = Math.random() * worldHeight;
-      const size = 2 + Math.random() * 5;
+      const x = pseudoRandom() * worldWidth;
+      const y = pseudoRandom() * worldHeight;
+      const size = 2 + pseudoRandom() * 5;
       terrain.fillCircle(x, y, size);
     }
     
-    // 壁の配置
+    // 壁を作成（物理判定付き）
     this.createWalls();
-    
-    // 装飾的なオブジェクト
-    this.createDecorativeObjects();
   }
   
   private createWalls(): void {
@@ -115,17 +161,21 @@ export class WorldScene extends Phaser.Scene {
       { x: 100, y: 400, width: 50, height: 150 },
       { x: 500, y: 400, width: 50, height: 150 },
       { x: 250, y: 200, width: 150, height: 50 },
-      { x: 250, y: 350, width: 150, height: 50 }
+      { x: 250, y: 350, width: 150, height: 50 },
+      // 外壁を追加
+      { x: 0, y: 0, width: 640, height: 20 },         // 上壁
+      { x: 0, y: 620, width: 640, height: 20 },       // 下壁
+      { x: 0, y: 0, width: 20, height: 640 },         // 左壁
+      { x: 620, y: 0, width: 20, height: 640 }        // 右壁
     ];
     
-    // 壁グループの作成
+    // 壁グループの作成（静的な物理オブジェクト）
     const walls = this.physics.add.staticGroup();
     
     // 壁用のキーを作成
     const wallKey = 'wall_rect';
     
     // 壁用の共通テクスチャを一度だけ生成
-    // 汎用的な壁テクスチャ（一度だけ生成）
     if (!this.textures.exists(wallKey)) {
       const size = 32; // 基本サイズ
       const graphics = this.add.graphics();
@@ -143,31 +193,45 @@ export class WorldScene extends Phaser.Scene {
     
     // 壁の追加
     wallPattern.forEach(wall => {
-      // スケーリングで壁のサイズを調整
-      const scaleX = wall.width / 32;
-      const scaleY = wall.height / 32;
-      
-      // スプライトを生成して配置
-      const wallSprite = walls.create(
-        wall.x + wall.width / 2, 
+      // 正しい衝突サイズをもつ矩形を作成
+      const wallBody = this.add.rectangle(
+        wall.x + wall.width / 2,
         wall.y + wall.height / 2,
-        wallKey
+        wall.width,
+        wall.height,
+        0x795548
       );
       
-      // サイズ調整
-      wallSprite.setScale(scaleX, scaleY);
+      // 物理ボディを追加
+      this.physics.add.existing(wallBody, true); // true = static (動かない)
       
-      // 当たり判定のサイズをグラフィックに合わせる
-      wallSprite.setSize(wall.width / scaleX, wall.height / scaleY);
-      
-      // 茶色のティント
-      wallSprite.setTint(0x795548);
+      // デバッグ用境界線を追加
+      const border = this.add.graphics();
+      border.lineStyle(2, 0xFF0000);
+      border.strokeRect(wall.x, wall.y, wall.width, wall.height);
     });
     
-    // プレイヤーと壁の衝突判定
-    if (this.player) {
-      this.physics.add.collider(this.player, walls);
-    }
+    // 道路用の横断歩道パターン（装飾目的）
+    const roadCrossings = [
+      { x: 310, y: 150, width: 20, height: 60 },
+      { x: 310, y: 450, width: 20, height: 60 },
+      { x: 150, y: 310, width: 60, height: 20 },
+      { x: 450, y: 310, width: 60, height: 20 }
+    ];
+    
+    // 横断歩道の描画
+    const roadGraphics = this.add.graphics();
+    roadGraphics.fillStyle(0xFFFFFF, 0.7);
+    roadCrossings.forEach(crossing => {
+      roadGraphics.fillRect(
+        crossing.x,
+        crossing.y,
+        crossing.width,
+        crossing.height
+      );
+    });
+    
+    console.log('Walls and collisions created successfully');
   }
   
   private createDecorativeObjects(): void {

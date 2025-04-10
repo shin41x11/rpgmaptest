@@ -48,35 +48,41 @@ export class PreloadScene extends Phaser.Scene {
     this.load.on('progress', (value: number) => {
       const width = 280 * value;
       progressBar.width = width;
-      this.loadingText.setText(`読み込み中... ${Math.floor(value * 100)}%`);
+      if (this.loadingText) {
+        this.loadingText.setText(`読み込み中... ${Math.floor(value * 100)}%`);
+      }
     });
 
     // 全てのアセットを読み込む
     try {
+      // ディレクトリパス定義
+      const imageDir = '/assets/sprites/';
+      const mapDir = '/assets/tilemaps/';
+      
       // プレイヤーキャラクター
-      this.load.svg('hero', '/assets/sprites/hero.svg');
+      this.load.svg('hero', imageDir + 'hero.svg');
       
-      // タイルマップとタイルセット
-      this.load.svg('grass', '/assets/sprites/grass.svg');
-      this.load.svg('sand', '/assets/sprites/sand.svg');
-      this.load.svg('water', '/assets/sprites/water.svg');
-      this.load.svg('wall', '/assets/sprites/wall.svg');
+      // タイルセット
+      this.load.svg('grass', imageDir + 'grass.svg');
+      this.load.svg('sand', imageDir + 'sand.svg');
+      this.load.svg('water', imageDir + 'water.svg');
+      this.load.svg('wall', imageDir + 'wall.svg');
       
-      // タイルマップの読み込み - tilemapJSONはtilemapに修正
-      this.load.json('world', '/assets/tilemaps/world.json');
+      // タイルマップの読み込み（JSONファイルとして）
+      this.load.tilemapTiledJSON('world-map', mapDir + 'world.json');
       
       // サウンドエフェクト
       this.sound.add('background', { loop: true });
       this.sound.add('hit');
       this.sound.add('success');
       
-      console.log('Starting asset loading...');
+      console.log('アセットの読み込みを開始しました');
     } catch (error) {
-      console.error('Error in PreloadScene.preload:', error);
+      console.error('PreloadSceneでエラーが発生しました:', error);
     }
 
     this.load.on('complete', () => {
-      console.log('All assets loaded');
+      console.log('全てのアセットを読み込みました');
       // ロード完了後にプログレスバーを消す
       loadingBg.destroy();
       progressBg.destroy();
