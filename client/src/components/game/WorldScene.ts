@@ -22,27 +22,78 @@ export class WorldScene extends Phaser.Scene {
     console.log('Creating world scene');
     
     try {
-      // Set a green background color
-      this.cameras.main.setBackgroundColor(0x4CAF50);
+      // 世界の境界設定
+      const worldWidth = 640;   // 20 tiles x 32px
+      const worldHeight = 640;  // 20 tiles x 32px
+      this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
       
-      // Set world bounds
-      this.physics.world.setBounds(0, 0, 1280, 720);
+      // タイルマップの作成
+      this.createTilemap();
       
-      // Create player
+      // プレイヤーキャラクターの作成
       this.createPlayer();
       
-      // Setup camera
+      // カメラのセットアップ
       this.setupCamera();
       
-      // Setup input
+      // 入力のセットアップ
       this.setupInput();
       
-      // Setup sounds
+      // サウンドのセットアップ
       this.setupSounds();
+      
+      // 衝突判定の設定
+      this.setupCollisions();
       
       console.log('World scene created successfully');
     } catch (error) {
       console.error('Error creating world scene:', error);
+    }
+  }
+  
+  private createTilemap(): void {
+    try {
+      // キャッシュからタイルマップを作成
+      const map = this.make.tilemap({ key: 'world' });
+      
+      // 各タイルセットを追加
+      const grassTiles = map.addTilesetImage('grass', 'grass');
+      const sandTiles = map.addTilesetImage('sand', 'sand');
+      const waterTiles = map.addTilesetImage('water', 'water');
+      const wallTiles = map.addTilesetImage('wall', 'wall');
+      
+      // 利用可能なタイルセット配列
+      const tiles = [grassTiles, sandTiles, waterTiles, wallTiles];
+      
+      // レイヤーを作成
+      const groundLayer = map.createLayer('ground', tiles);
+      const obstaclesLayer = map.createLayer('obstacles', tiles);
+      
+      // 障害物に衝突判定を追加（壁の場合）
+      if (obstaclesLayer) {
+        obstaclesLayer.setCollisionByExclusion([-1, 0]);
+      }
+      
+      console.log('Tilemap created successfully');
+    } catch (error) {
+      console.error('Error creating tilemap:', error);
+    }
+  }
+  
+  private setupCollisions(): void {
+    try {
+      // タイルマップとプレイヤーの衝突設定
+      if (this.player) {
+        // 障害物との衝突
+        const obstaclesLayer = this.children.getByName('obstacles') as Phaser.Tilemaps.TilemapLayer;
+        if (obstaclesLayer) {
+          this.physics.add.collider(this.player, obstaclesLayer);
+        }
+        
+        console.log('Collisions setup complete');
+      }
+    } catch (error) {
+      console.error('Error setting up collisions:', error);
     }
   }
 
@@ -90,33 +141,50 @@ export class WorldScene extends Phaser.Scene {
 
   private createPlayer(): void {
     try {
-      // 画面の中央に配置
+      // ゲーム画面の中央に配置
       const centerX = this.cameras.main.width / 2;
       const centerY = this.cameras.main.height / 2;
       
       console.log('Creating player at position:', centerX, centerY);
       
-      // ダミーオブジェクトを作成して赤い四角を表示
-      // 直接グラフィックを作成すると動かない可能性があるので、
-      // スプライトを使用して単純な表示にします
+      // 新しいヒーロースプライトを作成
       this.player = this.physics.add.sprite(centerX, centerY, 'hero');
       
-      // プレイヤーのサイズを大きくして明確に見える
-      this.player.setScale(3.0);
+      // より適切なサイズに調整
+      this.player.setScale(1.0);
       
-      // 物理演算を簡素化
-      this.player.setCollideWorldBounds(true); // 世界の端で止まる
-      this.player.setBounce(0); // 反発しない
-      this.player.setImmovable(false); // 動かせる状態
+      // 物理設定
+      this.player.setCollideWorldBounds(true);
+      this.player.setBounce(0);
+      this.player.setFriction(0);
+      this.player.setDepth(10); // 他のオブジェクトより上に表示
+
+      // 素早く止まるようにするためのドラッグ設定
+      if (this.player.body) {
+        this.player.body.setDamping(true);
+        this.player.body.setDrag(0.95, 0.95);
+      }
       
-      // 目立つように赤色に
-      this.player.setTint(0xFF0000);
+      // キャラの周りに装飾的な光エフェクトを追加
+      const glow = this.add.graphics();
+      glow.fillStyle(0x4466ff, 0.3);
+      glow.fillCircle(centerX, centerY, 30);
       
-      // 判定枠の大きさを確認するため（デバッグ用）
-      this.player.setDebug(true, true, 0xFF00FF);
+      // プレイヤーの影を追加
+      const shadow = this.add.ellipse(centerX, centerY + 20, 40, 15, 0x000000, 0.3);
+      shadow.setDepth(9);
       
-      // 確認用ログ
-      console.log('Player created with dimensions:', 
+      // グラフィックを追従させる
+      this.events.on('update', () => {
+        if (this.player) {
+          glow.x = this.player.x - centerX;
+          glow.y = this.player.y - centerY;
+          shadow.x = this.player.x;
+          shadow.y = this.player.y + 20;
+        }
+      });
+      
+      console.log('Enhanced player created with dimensions:', 
         this.player.width, 'x', this.player.height,
         'at position', this.player.x, this.player.y);
     } catch (error) {
@@ -127,26 +195,26 @@ export class WorldScene extends Phaser.Scene {
   private setupCamera(): void {
     try {
       if (this.player) {
-        // Reset and reconfigure camera
+        // カメラを構成
         const camera = this.cameras.main;
         
-        // Set world bounds based on our fixed constants
-        const worldWidth = 1280;
-        const worldHeight = 720;
+        // タイルマップの世界サイズに合わせてカメラの境界を設定
+        const worldWidth = 640;   // 20 tiles x 32px
+        const worldHeight = 640;  // 20 tiles x 32px
         camera.setBounds(0, 0, worldWidth, worldHeight);
         
-        // Configure camera to follow player with immediate response (no lag)
-        camera.startFollow(this.player, true, 1, 1);
+        // プレイヤーをカメラの中心に
+        camera.startFollow(this.player, true, 0.9, 0.9);
         
-        // Set a wider zoom level to see more of the game
-        camera.setZoom(0.75);
+        // ズームレベルをタイルマップにちょうど良い大きさに設定
+        camera.setZoom(1.0);
         
-        // Add a red border to help visualize the game area
+        // 世界の境界を視覚化（デバッグ用）
         const graphics = this.add.graphics();
-        graphics.lineStyle(4, 0xff0000, 1);
+        graphics.lineStyle(2, 0xff0000, 1);
         graphics.strokeRect(0, 0, worldWidth, worldHeight);
         
-        console.log('Camera setup with enhanced view and visual border');
+        console.log('Camera setup complete - following player at zoom level:', camera.zoom);
       }
     } catch (error) {
       console.error('Error setting up camera:', error);

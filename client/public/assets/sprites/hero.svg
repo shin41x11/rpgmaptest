@@ -1,8 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <!-- Hero character - simple design -->
-  <circle cx="32" cy="32" r="28" fill="#3498db" stroke="#2980b9" stroke-width="2"/>
-  <circle cx="24" cy="24" r="4" fill="#ffffff"/>
-  <circle cx="40" cy="24" r="4" fill="#ffffff"/>
-  <path d="M24 40 Q32 48 40 40" stroke="#ffffff" stroke-width="3" fill="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect x="0" y="0" width="64" height="64" fill="#000000" opacity="0"/>
+  <circle cx="32" cy="32" r="24" fill="#1e88e5"/>
+  <circle cx="32" cy="32" r="20" fill="#42a5f5"/>
+  <circle cx="40" cy="24" r="6" fill="#bbdefb"/>
+  <rect x="28" y="36" width="8" height="4" fill="#0d47a1"/>
+  <rect x="20" y="30" width="8" height="4" fill="#0d47a1"/>
+  <rect x="36" y="30" width="8" height="4" fill="#0d47a1"/>
 </svg>
