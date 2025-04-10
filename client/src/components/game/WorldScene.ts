@@ -4,12 +4,20 @@ import { useAudio } from '@/lib/stores/useAudio';
 import { useGameState } from '@/lib/stores/useGameState';
 
 export class WorldScene extends Phaser.Scene {
+  // プレイヤー関連
   private player?: Phaser.Physics.Arcade.Sprite;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private playerState: PlayerState = {
     direction: Direction.DOWN,
     isMoving: false
   };
+  
+  // タイルマップ関連
+  private map?: Phaser.Tilemaps.Tilemap;
+  private groundLayer?: Phaser.Tilemaps.TilemapLayer;
+  private obstaclesLayer?: Phaser.Tilemaps.TilemapLayer;
+  
+  // サウンド要素
   private backgroundMusic?: Phaser.Sound.BaseSound;
   private hitSound?: Phaser.Sound.BaseSound;
   private successSound?: Phaser.Sound.BaseSound;
@@ -88,8 +96,8 @@ export class WorldScene extends Phaser.Scene {
       
       // マップとレイヤーを保存（他のメソッドでアクセスできるように）
       this.map = map;
-      this.groundLayer = groundLayer;
-      this.obstaclesLayer = obstaclesLayer;
+      this.groundLayer = groundLayer || undefined;
+      this.obstaclesLayer = obstaclesLayer || undefined;
       
       // 装飾的なオブジェクトを追加
       this.createDecorativeObjects();
@@ -259,18 +267,37 @@ export class WorldScene extends Phaser.Scene {
   
   private setupCollisions(): void {
     try {
-      // タイルマップとプレイヤーの衝突設定
+      // プレイヤーとタイルマップレイヤーの衝突設定
       if (this.player) {
-        // 障害物との衝突
-        const obstaclesLayer = this.children.getByName('obstacles') as Phaser.Tilemaps.TilemapLayer;
-        if (obstaclesLayer) {
-          this.physics.add.collider(this.player, obstaclesLayer);
+        // 既に保存されているobstaclesLayerを使用
+        if (this.obstaclesLayer) {
+          this.physics.add.collider(this.player, this.obstaclesLayer);
+          console.log('タイルマップとプレイヤーの衝突判定を設定しました');
+        } else {
+          console.log('障害物レイヤーが見つかりません');
         }
         
-        console.log('Collisions setup complete');
+        // 物理ボディを持つすべての矩形と衝突判定を設定
+        const physicsObjects = this.physics.world.staticBodies.getArray();
+        if (physicsObjects.length > 0) {
+          let colliderCount = 0;
+          
+          physicsObjects.forEach(body => {
+            if (body.gameObject && this.player) {
+              // 明示的にArcadeColliderTypeとして扱う
+              const gameObj = body.gameObject as Phaser.GameObjects.GameObject;
+              this.physics.add.collider(this.player, gameObj);
+              colliderCount++;
+            }
+          });
+          
+          console.log('静的物理オブジェクトとの衝突判定を設定しました:', colliderCount, '個のオブジェクト');
+        }
+        
+        console.log('衝突判定の設定が完了しました');
       }
     } catch (error) {
-      console.error('Error setting up collisions:', error);
+      console.error('衝突判定の設定中にエラーが発生しました:', error);
     }
   }
 
@@ -288,17 +315,19 @@ export class WorldScene extends Phaser.Scene {
       // 次のフレームで移動の結果をチェックするための遅延ログ
       // (少し遅らせて実際の移動結果を確認する)
       this.time.delayedCall(50, () => {
-        const newX = this.player.x;
-        const newY = this.player.y;
-        const hasMoved = (currentX !== newX || currentY !== newY);
-        
-        if (hasMoved) {
-          // 実際に移動した場合のみ詳細なログ
-          console.log('Player moved:', 
-            'from:', currentX.toFixed(0), currentY.toFixed(0),
-            'to:', newX.toFixed(0), newY.toFixed(0),
-            'delta:', (newX - currentX).toFixed(0), (newY - currentY).toFixed(0)
-          );
+        if (this.player) {
+          const newX = this.player.x;
+          const newY = this.player.y;
+          const hasMoved = (currentX !== newX || currentY !== newY);
+          
+          if (hasMoved) {
+            // 実際に移動した場合のみ詳細なログ
+            console.log('Player moved:', 
+              'from:', currentX.toFixed(0), currentY.toFixed(0),
+              'to:', newX.toFixed(0), newY.toFixed(0),
+              'delta:', (newX - currentX).toFixed(0), (newY - currentY).toFixed(0)
+            );
+          }
         }
       });
 
@@ -521,9 +550,11 @@ export class WorldScene extends Phaser.Scene {
     this.player.setVelocity(velocityX, velocityY);
     
     // 移動をログ
-    if (isMoving) {
+    if (isMoving && this.player.body) {
       console.log('Player now at:', this.player.x, this.player.y, 
-        'with velocity:', this.player.body.velocity.x, this.player.body.velocity.y);
+        'with velocity:', 
+        this.player.body.velocity ? this.player.body.velocity.x : 0, 
+        this.player.body.velocity ? this.player.body.velocity.y : 0);
     }
     
     // 更新時にプレイヤーの色とサイズを維持（物理更新で上書きされることを防止）
