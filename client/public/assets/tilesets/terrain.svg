@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Grass Tile -->
+  <g id="grass-tile">
+    <rect x="0" y="0" width="32" height="32" fill="#4CAF50" />
+    <path d="M0 0 L8 0 L0 8 Z" fill="#81C784" />
+    <path d="M32 0 L32 8 L24 0 Z" fill="#81C784" />
+    <path d="M0 32 L0 24 L8 32 Z" fill="#81C784" />
+    <path d="M32 32 L24 32 L32 24 Z" fill="#81C784" />
+    <path d="M16 16 C16 16 14 13 16 10 C18 7 21 9 21 9" stroke="#81C784" stroke-width="1" fill="none" />
+    <path d="M10 22 C10 22 12 19 10 16 C8 13 5 15 5 15" stroke="#81C784" stroke-width="1" fill="none" />
+    <path d="M23 23 C23 23 25 20 23 17 C21 14 18 16 18 16" stroke="#81C784" stroke-width="1" fill="none" />
+  </g>
+  
+  <!-- Sand Tile -->
+  <g id="sand-tile">
+    <rect x="32" y="0" width="32" height="32" fill="#FDD835" />
+    <circle cx="38" cy="6" r="1" fill="#F9A825" />
+    <circle cx="44" cy="12" r="1" fill="#F9A825" />
+    <circle cx="52" cy="8" r="1" fill="#F9A825" />
+    <circle cx="58" cy="5" r="1" fill="#F9A825" />
+    <circle cx="56" cy="15" r="1" fill="#F9A825" />
+    <circle cx="42" cy="22" r="1" fill="#F9A825" />
+    <circle cx="36" cy="26" r="1" fill="#F9A825" />
+    <circle cx="48" cy="28" r="1" fill="#F9A825" />
+    <circle cx="60" cy="24" r="1" fill="#F9A825" />
+  </g>
+  
+  <!-- Water Tile -->
+  <g id="water-tile">
+    <rect x="64" y="0" width="32" height="32" fill="#2196F3" />
+    <path d="M64 8 Q72 6 80 8 Q88 10 96 8 L96 10 Q88 12 80 10 Q72 8 64 10 Z" fill="#64B5F6" opacity="0.7" />
+    <path d="M64 18 Q72 16 80 18 Q88 20 96 18 L96 20 Q88 22 80 20 Q72 18 64 20 Z" fill="#64B5F6" opacity="0.7" />
+    <path d="M64 28 Q72 26 80 28 Q88 30 96 28 L96 30 Q88 32 80 30 Q72 28 64 30 Z" fill="#64B5F6" opacity="0.7" />
+  </g>
+  
+  <!-- Mountain Tile -->
+  <g id="mountain-tile">
+    <rect x="96" y="0" width="32" height="32" fill="#795548" />
+    <path d="M96 32 L112 8 L128 32 Z" fill="#8D6E63" />
+    <path d="M96 32 L104 20 L112 32 Z" fill="#6D4C41" />
+    <path d="M110 32 L118 20 L128 32 Z" fill="#6D4C41" />
+    <circle cx="112" cy="10" r="2" fill="#EEEEEE" /> <!-- Snow cap -->
+  </g>
+  
+  <!-- Tree Tile (Obstacle) -->
+  <g id="tree-tile">
+    <rect x="0" y="32" width="32" height="32" fill="#4CAF50" />
+    <rect x="14" y="42" width="4" height="22" fill="#795548" /> <!-- Trunk -->
+    <path d="M8 50 L24 50 L16 40 Z" fill="#388E3C" /> <!-- Leaves -->
+    <path d="M6 44 L26 44 L16 32 Z" fill="#388E3C" /> <!-- Leaves -->
+  </g>
+  
+  <!-- Rock Tile (Obstacle) -->
+  <g id="rock-tile">
+    <rect x="32" y="32" width="32" height="32" fill="#4CAF50" />
+    <ellipse cx="48" cy="48" rx="12" ry="8" fill="#9E9E9E" />
+    <path d="M42 44 L44 40 L48 42 L52 38 L54 44 Z" fill="#BDBDBD" />
+  </g>
+  
+  <!-- House Tile (Special) -->
+  <g id="house-tile">
+    <rect x="64" y="32" width="32" height="32" fill="#4CAF50" />
+    <rect x="70" y="44" width="20" height="15" fill="#D7CCC8" /> <!-- House body -->
+    <path d="M68 44 L80 34 L92 44 Z" fill="#BF360C" /> <!-- Roof -->
+    <rect x="77" y="50" width="6" height="9" fill="#795548" /> <!-- Door -->
+  </g>
+  
+  <!-- Path Tile -->
+  <g id="path-tile">
+    <rect x="96" y="32" width="32" height="32" fill="#8D6E63" />
+    <circle cx="102" cy="38" r="1" fill="#795548" />
+    <circle cx="110" cy="44" r="1" fill="#795548" />
+    <circle cx="106" cy="52" r="1" fill="#795548" />
+    <circle cx="118" cy="42" r="1" fill="#795548" />
+    <circle cx="124" cy="54" r="1" fill="#795548" />
+    <circle cx="116" cy="60" r="1" fill="#795548" />
+    <circle cx="102" cy="58" r="1" fill="#795548" />
+  </g>
+</svg>
