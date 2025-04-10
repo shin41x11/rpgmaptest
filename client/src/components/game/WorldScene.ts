@@ -47,29 +47,25 @@ export class WorldScene extends Phaser.Scene {
   }
 
   update(): void {
-    // Handle player movement
     try {
       if (!this.player || !this.cursors) return;
       
-      // Instead of resetting velocity, let's keep track of the previous position
-      // to detect if player actually moved
-      const prevX = this.player.x;
-      const prevY = this.player.y;
+      // Store initial position for debugging
+      const startX = this.player.x;
+      const startY = this.player.y;
       
-      // Process all movement controls
+      // Apply direct movement (position changes) based on input
       this.handlePlayerMovement();
       
-      // Check if player actually moved this frame
-      const hasMoved = (prevX !== this.player.x || prevY !== this.player.y);
+      // Check if player position changed
+      const hasMoved = (startX !== this.player.x || startY !== this.player.y);
       
-      // Log player position and movement status
-      if (this.time.now % 60 === 0) { // Log every second approximately
-        console.log('Player update:', 
-          'position:', this.player.x.toFixed(1), this.player.y.toFixed(1), 
-          'moved:', hasMoved,
-          'velocity:', 
-          this.player.body?.velocity.x.toFixed(1), 
-          this.player.body?.velocity.y.toFixed(1)
+      // Always log movement on each frame for better debugging
+      if (hasMoved) {
+        console.log('Player moved:', 
+          'from:', startX.toFixed(0), startY.toFixed(0),
+          'to:', this.player.x.toFixed(0), this.player.y.toFixed(0),
+          'delta:', (this.player.x - startX).toFixed(0), (this.player.y - startY).toFixed(0)
         );
       }
     } catch (error) {
@@ -85,26 +81,21 @@ export class WorldScene extends Phaser.Scene {
       
       console.log('Creating player at position:', x, y);
       
-      // Create player sprite with physics
+      // Create the player with physics
       this.player = this.physics.add.sprite(x, y, 'hero');
-      this.player.setScale(0.5);
-      this.player.setCollideWorldBounds(true);
       
-      // Make sure physics body is enabled and not affected by gravity
-      const body = this.player.body as Phaser.Physics.Arcade.Body;
-      if (body) {
-        // Critical: Set drag to zero to prevent automatic slowing down
-        body.setDrag(0, 0);
+      if (this.player) {
+        // Make it bigger and set initial scale
+        this.player.setScale(1.0);
         
-        // Prevent bounce effect
-        body.setBounce(0, 0);
+        // Turn off collision with world bounds - we'll handle manually
+        this.player.setCollideWorldBounds(false);
         
-        // Set fixed position updates instead of frame-dependent
-        body.useDamping = false;
-        
-        console.log('Player physics configured');
+        // Apply a distinctive color tint so it's very visible
+        this.player.setTint(0xFF0000); // Bright red
       }
       
+      // Log success
       console.log('Player created successfully');
     } catch (error) {
       console.error('Error creating player:', error);
@@ -195,7 +186,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    const moveStep = 5; // Direct position change amount
+    const moveStep = 30; // さらに移動量を大幅に増やす
     let isMoving = false;
     
     // Get keyboard state for WASD keys
@@ -245,21 +236,26 @@ export class WorldScene extends Phaser.Scene {
       console.log('Moving down');
     }
     
-    // Apply position changes directly
-    if (isMoving) {
-      // Set the new position
-      this.player.setPosition(x, y);
-      
-      // Make sure player stays within world bounds
-      const body = this.player.body as Phaser.Physics.Arcade.Body;
-      if (body) {
-        body.updateBounds();
-      }
-      
-      // Ensure player is visible and has the correct size
-      this.player.setAlpha(1);
-      this.player.setScale(0.5);
-    }
+    // Always apply the position changes directly
+    // Set the new position
+    this.player.setPosition(x, y);
+    
+    // Ensure player stays within the world boundaries
+    const worldWidth = 1280;
+    const worldHeight = 720;
+    const playerWidth = this.player.width * this.player.scaleX / 2;
+    const playerHeight = this.player.height * this.player.scaleY / 2;
+    
+    // Keep player within bounds manually
+    if (this.player.x < playerWidth) this.player.x = playerWidth;
+    if (this.player.x > worldWidth - playerWidth) this.player.x = worldWidth - playerWidth;
+    if (this.player.y < playerHeight) this.player.y = playerHeight;
+    if (this.player.y > worldHeight - playerHeight) this.player.y = worldHeight - playerHeight;
+    
+    // Ensure player is visible and has the correct size - red tint to see it clearly
+    this.player.setAlpha(1);
+    this.player.setScale(1.0);
+    this.player.setTint(0xFF0000); // Keep it bright red
     
     // Update player state
     this.playerState.isMoving = isMoving;
