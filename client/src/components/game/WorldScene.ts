@@ -50,21 +50,28 @@ export class WorldScene extends Phaser.Scene {
     // Handle player movement
     try {
       if (!this.player || !this.cursors) return;
-
-      // Reset player velocity at the start of each update
-      this.player.setVelocity(0, 0);
       
-      // Log player position for debugging
+      // Instead of resetting velocity, let's keep track of the previous position
+      // to detect if player actually moved
+      const prevX = this.player.x;
+      const prevY = this.player.y;
+      
+      // Process all movement controls
+      this.handlePlayerMovement();
+      
+      // Check if player actually moved this frame
+      const hasMoved = (prevX !== this.player.x || prevY !== this.player.y);
+      
+      // Log player position and movement status
       if (this.time.now % 60 === 0) { // Log every second approximately
-        console.log('Player position:', 
-          'x:', this.player.x,
-          'y:', this.player.y,
-          'velocity:', this.player.body?.velocity.x, this.player.body?.velocity.y
+        console.log('Player update:', 
+          'position:', this.player.x.toFixed(1), this.player.y.toFixed(1), 
+          'moved:', hasMoved,
+          'velocity:', 
+          this.player.body?.velocity.x.toFixed(1), 
+          this.player.body?.velocity.y.toFixed(1)
         );
       }
-
-      // Handle player movement
-      this.handlePlayerMovement();
     } catch (error) {
       console.error('Error in update:', error);
     }
@@ -78,9 +85,25 @@ export class WorldScene extends Phaser.Scene {
       
       console.log('Creating player at position:', x, y);
       
+      // Create player sprite with physics
       this.player = this.physics.add.sprite(x, y, 'hero');
       this.player.setScale(0.5);
       this.player.setCollideWorldBounds(true);
+      
+      // Make sure physics body is enabled and not affected by gravity
+      const body = this.player.body as Phaser.Physics.Arcade.Body;
+      if (body) {
+        // Critical: Set drag to zero to prevent automatic slowing down
+        body.setDrag(0, 0);
+        
+        // Prevent bounce effect
+        body.setBounce(0, 0);
+        
+        // Set fixed position updates instead of frame-dependent
+        body.useDamping = false;
+        
+        console.log('Player physics configured');
+      }
       
       console.log('Player created successfully');
     } catch (error) {
@@ -172,7 +195,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    const speed = 200; // Increased speed for better responsiveness
+    const moveStep = 5; // Direct position change amount
     let isMoving = false;
     
     // Get keyboard state for WASD keys
@@ -181,66 +204,64 @@ export class WorldScene extends Phaser.Scene {
     const sKey = this.input.keyboard?.addKey('S');
     const dKey = this.input.keyboard?.addKey('D');
     
-    // Explicitly log key states for debugging
-    if (this.time.now % 120 === 0) {
-      console.log('Key states:', 
-        'left:', this.cursors.left?.isDown, 'A:', aKey?.isDown,
-        'right:', this.cursors.right?.isDown, 'D:', dKey?.isDown,
-        'up:', this.cursors.up?.isDown, 'W:', wKey?.isDown,
-        'down:', this.cursors.down?.isDown, 'S:', sKey?.isDown
-      );
-    }
-    
-    // Handle horizontal movement with arrow keys or WASD
+    // Keyboard checks for movement
     const leftPressed = this.cursors.left?.isDown || aKey?.isDown;
     const rightPressed = this.cursors.right?.isDown || dKey?.isDown;
     const upPressed = this.cursors.up?.isDown || wKey?.isDown;
     const downPressed = this.cursors.down?.isDown || sKey?.isDown;
     
-    // Handle horizontal movement
+    // Store current position
+    let x = this.player.x;
+    let y = this.player.y;
+    
+    // Move using direct position changes instead of velocity
     if (leftPressed) {
-      this.player.setVelocityX(-speed);
+      x -= moveStep;
       this.player.flipX = true;
       this.playerState.direction = Direction.LEFT;
       isMoving = true;
-      console.log('Moving left, velocity set to', -speed);
+      console.log('Moving left');
     } else if (rightPressed) {
-      this.player.setVelocityX(speed);
+      x += moveStep;
       this.player.flipX = false;
       this.playerState.direction = Direction.RIGHT;
       isMoving = true;
-      console.log('Moving right, velocity set to', speed);
-    } else {
-      // Stop horizontal movement if neither left nor right is pressed
-      this.player.setVelocityX(0);
+      console.log('Moving right');
     }
     
-    // Handle vertical movement
     if (upPressed) {
-      this.player.setVelocityY(-speed);
+      y -= moveStep;
       if (!isMoving) {
         this.playerState.direction = Direction.UP;
       }
       isMoving = true;
-      console.log('Moving up, velocity set to', -speed);
+      console.log('Moving up');
     } else if (downPressed) {
-      this.player.setVelocityY(speed);
+      y += moveStep;
       if (!isMoving) {
         this.playerState.direction = Direction.DOWN;
       }
       isMoving = true;
-      console.log('Moving down, velocity set to', speed);
-    } else {
-      // Stop vertical movement if neither up nor down is pressed
-      this.player.setVelocityY(0);
+      console.log('Moving down');
     }
     
-    // Update player state and player visibility if it's moved
-    this.playerState.isMoving = isMoving;
+    // Apply position changes directly
     if (isMoving) {
+      // Set the new position
+      this.player.setPosition(x, y);
+      
+      // Make sure player stays within world bounds
+      const body = this.player.body as Phaser.Physics.Arcade.Body;
+      if (body) {
+        body.updateBounds();
+      }
+      
       // Ensure player is visible and has the correct size
       this.player.setAlpha(1);
       this.player.setScale(0.5);
     }
+    
+    // Update player state
+    this.playerState.isMoving = isMoving;
   }
 }
