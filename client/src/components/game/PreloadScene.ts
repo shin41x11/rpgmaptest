@@ -22,8 +22,8 @@ export class PreloadScene extends Phaser.Scene {
 
     // Load basic assets
     try {
-      // For hero character
-      this.load.svg('hero', '/assets/sprites/hero.svg');
+      // For hero character - use the newly created SVG
+      this.load.svg('hero', '/assets/images/player.svg');
       
       // Create dummy sounds instead of loading files
       this.sound.add('background', { loop: true });

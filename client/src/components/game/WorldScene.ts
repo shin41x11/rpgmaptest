@@ -75,24 +75,40 @@ export class WorldScene extends Phaser.Scene {
 
   private createPlayer(): void {
     try {
-      // Create the player sprite at center of screen
-      const x = this.cameras.main.width / 2;
-      const y = this.cameras.main.height / 2;
+      // 画面中央に配置
+      const x = 640; // 画面の中央X座標（1280の半分）
+      const y = 360; // 画面の中央Y座標（720の半分）
       
       console.log('Creating player at position:', x, y);
       
-      // Create the player with physics
+      // より明確にするために単純な四角形で表示
+      const graphics = this.add.graphics();
+      graphics.fillStyle(0xFF0000, 1); // 赤色で塗りつぶし
+      graphics.fillRect(-20, -20, 40, 40); // 40x40の四角形
+      
+      // Create the player with physics and the rectangle as texture
       this.player = this.physics.add.sprite(x, y, 'hero');
       
       if (this.player) {
-        // Make it bigger and set initial scale
-        this.player.setScale(1.0);
+        // 大きめに設定
+        this.player.setScale(2.0);
         
-        // Turn off collision with world bounds - we'll handle manually
+        // 衝突判定は手動で行う
         this.player.setCollideWorldBounds(false);
         
-        // Apply a distinctive color tint so it's very visible
-        this.player.setTint(0xFF0000); // Bright red
+        // 目立つ色に設定
+        this.player.setTint(0xFF0000);
+        
+        // 長方形の図形をプレイヤーの代わりに表示
+        this.player.setVisible(false); // 元のスプライトは非表示
+        
+        // 長方形をプレイヤーに追従させる
+        this.events.on('update', () => {
+          if (this.player) {
+            graphics.x = this.player.x;
+            graphics.y = this.player.y;
+          }
+        });
       }
       
       // Log success
@@ -105,10 +121,26 @@ export class WorldScene extends Phaser.Scene {
   private setupCamera(): void {
     try {
       if (this.player) {
-        // Basic camera setup - follow player
-        this.cameras.main.startFollow(this.player, true, 0.5, 0.5);
-        this.cameras.main.setZoom(1.5); // Default zoom level
-        console.log('Camera setup complete');
+        // Reset and reconfigure camera
+        const camera = this.cameras.main;
+        
+        // Set world bounds based on our fixed constants
+        const worldWidth = 1280;
+        const worldHeight = 720;
+        camera.setBounds(0, 0, worldWidth, worldHeight);
+        
+        // Configure camera to follow player with immediate response (no lag)
+        camera.startFollow(this.player, true, 1, 1);
+        
+        // Set a wider zoom level to see more of the game
+        camera.setZoom(0.75);
+        
+        // Add a red border to help visualize the game area
+        const graphics = this.add.graphics();
+        graphics.lineStyle(4, 0xff0000, 1);
+        graphics.strokeRect(0, 0, worldWidth, worldHeight);
+        
+        console.log('Camera setup with enhanced view and visual border');
       }
     } catch (error) {
       console.error('Error setting up camera:', error);

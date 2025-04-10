@@ -17,21 +17,28 @@ const Game: React.FC = () => {
         console.log('Creating Phaser game instance');
         const config: Phaser.Types.Core.GameConfig = {
           type: Phaser.AUTO,
-          width: window.innerWidth,
-          height: window.innerHeight,
+          width: 1280, // 固定幅
+          height: 720, // 固定高さ
           parent: containerRef.current,
+          backgroundColor: '#2d2d2d', // 背景色を暗めのグレーに
           pixelArt: true,
           physics: {
             default: 'arcade',
             arcade: {
               gravity: { x: 0, y: 0 },
-              debug: false // Disable debug in production
+              debug: true, // デバッグを有効化
+              debugShowBody: true,
+              debugShowStaticBody: true,
+              debugShowVelocity: true,
+              debugBodyColor: 0xff00ff // デバッグ表示を明るい色に
             }
           },
           scene: [BootScene, PreloadScene, WorldScene],
           scale: {
-            mode: Phaser.Scale.RESIZE,
-            autoCenter: Phaser.Scale.CENTER_BOTH
+            mode: Phaser.Scale.FIT, // リサイズではなく、画面に合わせて表示
+            autoCenter: Phaser.Scale.CENTER_BOTH,
+            width: 1280,
+            height: 720
           },
           // Add safe fallbacks
           render: {
