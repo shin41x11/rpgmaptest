@@ -79,14 +79,34 @@ export class WorldScene extends Phaser.Scene {
       const groundLayer = map.createLayer('ground', tiles);
       const obstaclesLayer = map.createLayer('obstacles', tiles);
       
+      // 障害物レイヤーと地面レイヤーに衝突判定を設定
       if (obstaclesLayer) {
-        // 障害物レイヤーに衝突判定を設定（4はwallタイルのID）
         obstaclesLayer.setCollisionByProperty({ collides: true });
-        // デバッグモードで衝突タイルを視覚化（開発中に便利）
-        // obstaclesLayer.renderDebug(this.add.graphics(), {
-        //   tileColor: null,
-        //   collidingTileColor: new Phaser.Display.Color(243, 134, 48, 128)
-        // });
+        
+        // デバッグモードで衝突タイルを視覚化
+        const debugGraphics = this.add.graphics().setAlpha(0.7);
+        obstaclesLayer.renderDebug(debugGraphics, {
+          tileColor: null, // 衝突しないタイルは色を付けない
+          collidingTileColor: new Phaser.Display.Color(243, 134, 48, 128), // 衝突するタイル
+          faceColor: new Phaser.Display.Color(40, 39, 37, 255) // 衝突面の色
+        });
+      }
+      
+      // 地面レイヤーでも水タイルのみ衝突判定を設定
+      if (groundLayer) {
+        // waterタイルは3番目のタイル（インデックス2）
+        groundLayer.setCollisionByProperty({ collides: true });
+        
+        // 水の領域を視覚的に明確にする
+        const waterTiles = groundLayer.filterTiles((tile: Phaser.Tilemaps.Tile) => tile.index === 3);
+        waterTiles.forEach((tile: Phaser.Tilemaps.Tile) => {
+          // 水タイルに青い縁取りを追加
+          const rect = this.add.rectangle(
+            tile.pixelX + 16, 
+            tile.pixelY + 16, 
+            32, 32
+          ).setStrokeStyle(1, 0x0000FF, 0.3);
+        });
       }
       
       // ワールドの境界を設定（タイルマップのサイズに基づく）
@@ -269,12 +289,20 @@ export class WorldScene extends Phaser.Scene {
     try {
       // プレイヤーとタイルマップレイヤーの衝突設定
       if (this.player) {
-        // 既に保存されているobstaclesLayerを使用
+        // 障害物レイヤーとの衝突
         if (this.obstaclesLayer) {
           this.physics.add.collider(this.player, this.obstaclesLayer);
-          console.log('タイルマップとプレイヤーの衝突判定を設定しました');
+          console.log('障害物レイヤーとプレイヤーの衝突判定を設定しました');
         } else {
           console.log('障害物レイヤーが見つかりません');
+        }
+        
+        // 地面レイヤー(水タイル)との衝突
+        if (this.groundLayer) {
+          this.physics.add.collider(this.player, this.groundLayer);
+          console.log('地面レイヤー(水タイル)との衝突判定を設定しました');
+        } else {
+          console.log('地面レイヤーが見つかりません');
         }
         
         // 物理ボディを持つすべての矩形と衝突判定を設定
