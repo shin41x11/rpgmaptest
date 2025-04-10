@@ -131,7 +131,18 @@ export class WorldScene extends Phaser.Scene {
       
       // Add collision between player and obstacles if they exist
       if (this.obstaclesLayer) {
-        this.physics.add.collider(this.player, this.obstaclesLayer, this.handleCollision, undefined, this);
+        // Create a collider with a type-safe callback
+        const collider = this.physics.add.collider(
+          this.player, 
+          this.obstaclesLayer, 
+          () => {
+            // Play hit sound when collision occurs
+            this.hitSound?.play();
+            console.log('Collision with obstacle detected');
+          }, 
+          undefined, 
+          this
+        );
       }
     } catch (error) {
       console.error('Error creating player:', error);
@@ -298,9 +309,5 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private handleCollision(_player: Phaser.GameObjects.GameObject, obstacle: Phaser.GameObjects.GameObject): void {
-    // Play hit sound when player collides with an obstacle
-    this.hitSound?.play();
-    console.log('Collision with obstacle', obstacle);
-  }
+  // handleCollision is now implemented inline in the createPlayer method
 }
